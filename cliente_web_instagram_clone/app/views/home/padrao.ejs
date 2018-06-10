@@ -1,0 +1,181 @@
+<!DOCTYPE HTML>
+<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+
+		<title>Instagram Clone - WEB</title>
+		
+		<!-- JQuery -->
+		<script src="http://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+		<!-- bootstrap - link cdn -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	
+		<!-- incluindo css -->
+		<link href="css/style.css" rel="stylesheet">
+
+		<script>
+			$(document).ready(function(){
+
+				function carrega_postagens(){
+
+					const xrh = new XMLHttpRequest();
+					xrh.open("GET", "http://localhost:8080/api");
+					
+					xrh.onload = function(){
+						if(xrh.status === 200){
+							let data = $.parseJSON(xrh.responseText);
+							
+							data.forEach(function(d){
+								$('#container_timeline').append(
+									'<div class="publicacao">' +
+										'<span class="titulo">' +
+										d.titulo +
+										'</span>' +
+										'<img src="http://localhost:8080/imagens/' + d.url_imagem +'" />' +
+										'<div class="comentarios" id="comentarios_'+d._id+'"></div>' +
+										'<div class="comentar">' +
+										'<input type="text" class="form-control input_comentario" id="postagem_'+d._id+'" placeholder="Adicione um comentário"/>' +
+										'<button class="btn btn-default btn_postagem" value="'+ d._id +'" type="button">Comentar</button>' +
+									'</div>' 
+								);
+								
+								if(d.comentarios !== undefined){
+									const comentarios = d.comentarios;
+									comentarios.forEach(function(comentario){
+										$('#comentarios_'+d._id).append(
+											'<div class="txt_comentario">' +
+												'<button class="btn btn-danger btn_remover_postagem" value="'+comentario.id_comentario+'">X</button>' +
+												comentario.comentario +
+											'</div>'
+										)
+									})
+								}
+
+							})
+								$('.btn_remover_postagem').click(function(){
+									const id_comentario = this.value;
+									const xrh3 = new XMLHttpRequest;
+									xrh3.open('DELETE', 'http://localhost:8080/api/coments/' + id_comentario);
+									xrh3.onload = function(){
+										//xrh2.responseText  armeza a respota da aplicação servidora
+										if(xrh3.status === 200){
+												location.reload();
+											}
+										}
+										xrh3.send();
+								})
+
+								$('.btn_postagem').click(function(){
+										const id = this.value;
+										const id_input_postagem = 'postagem_'+id;
+										const comentario = $('#'+id_input_postagem).val();
+										
+										const xrh2 = new XMLHttpRequest;
+										xrh2.open('PUT', 'http://localhost:8080/api/coments/' + id);
+										xrh2.setRequestHeader('Content-Type', 'application/json'); // por isso o uso do Access-Control-Allow-Headers no servidor, para mudar os headers
+										
+										xrh2.onload = function(){
+											//xrh2.responseText  armeza a respota da aplicação servidora
+											if(xrh2.status === 200){
+												location.reload();
+											}
+										}
+
+										xrh2.send(JSON.stringify({comentario : comentario}));
+								});
+						}
+					}
+
+					xrh.send(); //efetiva a requisição
+				}
+				
+				carrega_postagens();
+
+				$('#btn_incluir').click(function(){
+					$('#container_timeline').hide();
+					$('#container_form').show();
+				});
+
+				$('#btn-cancelar-publicacao').click(function(){
+					$('#container_timeline').show();
+					$('#container_form').hide();
+					return false;
+				});
+
+				$('#btn-publicar').click(function(){
+
+					//cria uma formData
+					let formData = new FormData();
+
+					const arquivo = document.getElementById('arquivo').files[0];
+					const titulo = document.getElementById('titulo').value;
+
+					formData.append('arquivo', arquivo);
+					formData.append('titulo', titulo);
+
+					//criar um XHRttrequest
+					let xrh = new XMLHttpRequest();
+
+					//verifica mudança de estado
+					xrh.onreadystatechange = function(){
+						if(xrh.readyState === 4){
+							const resposta = xrh.responseText;
+							document.getElementById('mensagem').innerHTML = resposta;
+						}
+					}
+
+					// fazer envio de aruivo no request
+					xrh.open('POST', 'http://localhost:8080/api')
+					xrh.send(formData);
+
+				});
+
+			});
+		</script>
+
+	</head>
+
+	<body>
+
+		<nav class="navbar navbar-default">
+			<div class="container">
+				<div class="col-md-12">
+					<div class="container-fluid">
+						<img alt="Instagram Clone - Versão WEB" src="images/logo2.jpg" class="logo2">
+						<img alt="Incluir" src="images/incluir.jpg" class="pull-right btn-incluir" id="btn_incluir">						
+					</div>
+				</div>
+			</div>
+		</nav>
+
+		<div class="container">
+			<div class="col-md-2"></div>
+			<div class="col-md-8" id="container_timeline"></div>
+			
+		</div>
+
+
+		<div class="container" style="display:none" id="container_form">
+			<div class="panel panel-default">
+
+			<div class="panel-heading"><h4>Publicar uma foto</h4></div>
+			
+			<div class="panel-body">
+				<div class="form-group">
+					<input type="file" name="arquivo" id="arquivo" class="form-control">
+				</div>
+
+				<div class="form-group">
+					<input type="text" name="titulo" id="titulo" class="form-control" placeholder="Titulo" autocomplete="off">
+				</div>
+
+				<div class="form-group">
+					<button class="btn btn-success" id="btn-publicar">Publicar</button>
+					<button class="btn btn-danger" id="btn-cancelar-publicacao">Cancelar</button>
+				</div>
+				<div id="mensagem"></div>
+			</div>
+		</div>
+	</body>
+</html>
